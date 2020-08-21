@@ -1,8 +1,7 @@
-# Tetris
-Simple tetris game.
-
-Controls:
-  Up - rotate the shape.
-  Down - move shape down.
-  Left - move shape left.
-  Right - move shape right.
+# Controls
+<ul>
+  <li>Up - rotate the shape.</li>
+  <li>Down - move shape down.</li>
+  <li>Left - move shape left.</li>
+  <li>Right - move shape right.</li>
+</ul>
