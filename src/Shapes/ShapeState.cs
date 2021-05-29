@@ -1,4 +1,4 @@
-﻿namespace Tetris
+﻿namespace Tetris.Shapes
 {
     public enum ShapeState : byte
     {
