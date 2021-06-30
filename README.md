@@ -10,4 +10,4 @@ Put file "tetris.db" into "bin" folder.
 </ul>
 
 ### Demonstration of work
-https://user-images.githubusercontent.com/52632809/124016232-d85fa700-d9fe-11eb-9c95-514443d03240.gif
+![](https://user-images.githubusercontent.com/52632809/124016232-d85fa700-d9fe-11eb-9c95-514443d03240.gif)
