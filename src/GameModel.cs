@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
 using System.Drawing;
 using Tetris.Shapes;
 
@@ -9,49 +8,60 @@ namespace Tetris
 {
     class GameModel
     {
-        private readonly int modelWidth;
-        private readonly int modelHeight;
-        private readonly Shape[] shapes;
-        private readonly Random randomNumberGenerator = new Random();
-        private Shape currentShape;
-        private Point startLocation;
-        private int gameScore = 0;
-
+        private readonly int _modelWidth;
+        private readonly int _modelHeight;
+        private readonly Shape[] _shapes;
+        private readonly Random _randomNumberGenerator = new Random();
+        private Shape _currentShape;
+        private Point _startLocation;
+        private int _gameScore = 0;
+        
         public BlockType[,] Model { get; }
         public Shape NextShape { get; private set; }
-
+        
         public event EventHandler<GameScoreEventArgs> GameScoreChanged;
+        public event EventHandler<GameScoreEventArgs> GameEnd;
         public event EventHandler NextShapeChanged;
-
+       
         public GameModel(int height, int width)
         {
-            modelHeight = height;
-            modelWidth = width;
-            Model = new BlockType[modelHeight, modelWidth];
-            startLocation = new Point(modelWidth / 2 - 2, 0);
+            _modelHeight = height;
+            _modelWidth = width;
+            Model = new BlockType[_modelHeight, _modelWidth];
+            _startLocation = new Point(_modelWidth / 2 - 2, 0);
 
-            shapes = new Shape[] 
+            _shapes = new Shape[] 
             {
-                new I(startLocation),
-                new J(startLocation),
-                new L(startLocation),
-                new O(startLocation),
-                new S(startLocation),
-                new T(startLocation),
-                new Z(startLocation)
+                new I(_startLocation),
+                new J(_startLocation),
+                new L(_startLocation),
+                new O(_startLocation),
+                new S(_startLocation),
+                new T(_startLocation),
+                new Z(_startLocation)
             };
 
-            currentShape = shapes[randomNumberGenerator.Next(0, shapes.Length)];
-            NextShape = shapes[randomNumberGenerator.Next(0, shapes.Length)];
+            _currentShape = _shapes[_randomNumberGenerator.Next(0, _shapes.Length)];
+            NextShape = _shapes[_randomNumberGenerator.Next(0, _shapes.Length)];
             NextShape.CurrentState = ShapeState.Base;
             NextShapeChanged?.Invoke(this, EventArgs.Empty);
             PlaceCurrentShape(); 
+        }
+        
+        public void Clear()
+        {
+            ClearGameModel();
+            _gameScore = 0;
+            GameScoreChanged?.Invoke(this, new GameScoreEventArgs(_gameScore));
+
+            BringCurrentShapeToNextOne();
+            PlaceCurrentShape();
         }
 
         public void MoveShapeDown()
         {
             // Check the shape for reaching model's bottom border.
-            if (currentShape.LocationY + currentShape.BottomBorder == modelHeight - 1) 
+            if (_currentShape.LocationY + _currentShape.BottomBorder == _modelHeight - 1) 
             {
                 CountAndEraseCompletedRows();
                 BringCurrentShapeToNextOne();
@@ -60,17 +70,17 @@ namespace Tetris
             }
 
             // Check the shape for contact with other shapes.
-            for (var i = currentShape.TopBorder; i <= currentShape.BottomBorder; i++)
+            for (var i = _currentShape.TopBorder; i <= _currentShape.BottomBorder; i++)
             {
-                for (var j = currentShape.LeftBorder; j <= currentShape.RightBorder; j++)
+                for (var j = _currentShape.LeftBorder; j <= _currentShape.RightBorder; j++)
                 {
-                    if (Model[currentShape.LocationY + i + 1, currentShape.LocationX + j] != BlockType.Empty 
-                        && currentShape.States[currentShape.CurrentState][i, j] != BlockType.Empty
-                        && currentShape.States[currentShape.CurrentState][i + 1, j] == BlockType.Empty)
+                    if (Model[_currentShape.LocationY + i + 1, _currentShape.LocationX + j] != BlockType.Empty 
+                        && _currentShape.States[_currentShape.CurrentState][i, j] != BlockType.Empty
+                        && _currentShape.States[_currentShape.CurrentState][i + 1, j] == BlockType.Empty)
                     {
                         CountAndEraseCompletedRows();
 
-                        if (currentShape.LocationY + currentShape.TopBorder <= 0)
+                        if (_currentShape.LocationY + _currentShape.TopBorder <= 0)
                         {
                             EndOfGame();
                             return;
@@ -78,14 +88,14 @@ namespace Tetris
 
                         BringCurrentShapeToNextOne();
                         var rowCount = CountCleanRows();
-                        PlaceCurrentShape((rowCount >= currentShape.Height), rowCount);					
+                        PlaceCurrentShape((rowCount >= _currentShape.Height), rowCount);					
                         return;
                     }
                 }
             }
 
             EraseCurrentShape();
-            currentShape.LocationY++;
+            _currentShape.LocationY++;
             PlaceCurrentShape();
         }
 
@@ -96,13 +106,13 @@ namespace Tetris
                 return;
             }
 
-            var nextStateOfCurrentShape = currentShape.Clone() as Shape;
-            nextStateOfCurrentShape.CurrentState = currentShape.CurrentState == ShapeState.DegreeRotation270 ? ShapeState.Base : currentShape.CurrentState + 1;
+            var nextStateOfCurrentShape = _currentShape.Clone() as Shape;
+            nextStateOfCurrentShape.CurrentState = _currentShape.CurrentState == ShapeState.DegreeRotation270 ? ShapeState.Base : _currentShape.CurrentState + 1;
             
             // Check the next shape state for out of model borders.
-            if (currentShape.LocationY + nextStateOfCurrentShape.BottomBorder > modelHeight - 1 
-                || currentShape.LocationX + nextStateOfCurrentShape.LeftBorder < 0
-                || currentShape.LocationX + nextStateOfCurrentShape.RightBorder > modelWidth - 1)
+            if (_currentShape.LocationY + nextStateOfCurrentShape.BottomBorder > _modelHeight - 1 
+                || _currentShape.LocationX + nextStateOfCurrentShape.LeftBorder < 0
+                || _currentShape.LocationX + nextStateOfCurrentShape.RightBorder > _modelWidth - 1)
             {
                 return;
             }
@@ -113,14 +123,14 @@ namespace Tetris
                 {
                     if (Model[nextStateOfCurrentShape.LocationY + i, nextStateOfCurrentShape.LocationX + j] != BlockType.Empty
                         && nextStateOfCurrentShape.States[nextStateOfCurrentShape.CurrentState][i, j] != BlockType.Empty
-                        && currentShape.States[currentShape.CurrentState][i, j] == BlockType.Empty)
+                        && _currentShape.States[_currentShape.CurrentState][i, j] == BlockType.Empty)
                     {
                         return;
                     }
                 }
 
             EraseCurrentShape();
-            currentShape.CurrentState = nextStateOfCurrentShape.CurrentState;
+            _currentShape.CurrentState = nextStateOfCurrentShape.CurrentState;
             PlaceCurrentShape();
         }
 
@@ -131,19 +141,19 @@ namespace Tetris
             {
                 return;
             }
-            if (currentShape.LocationX + currentShape.LeftBorder == 0) 
+            if (_currentShape.LocationX + _currentShape.LeftBorder == 0) 
             {
                 return;
             }
             
             // Check the shape for contact with other shapes.
-            for (var i = currentShape.TopBorder; i <= currentShape.BottomBorder; i++)
+            for (var i = _currentShape.TopBorder; i <= _currentShape.BottomBorder; i++)
             {
-                for (var j = currentShape.LeftBorder; j <= currentShape.RightBorder; j++)
+                for (var j = _currentShape.LeftBorder; j <= _currentShape.RightBorder; j++)
                 {
-                    if (Model[currentShape.LocationY + i, currentShape.LocationX + j - 1] != BlockType.Empty
-                        && currentShape.States[currentShape.CurrentState][i, j] != BlockType.Empty
-                        && currentShape.States[currentShape.CurrentState][i, j - 1] == BlockType.Empty)
+                    if (Model[_currentShape.LocationY + i, _currentShape.LocationX + j - 1] != BlockType.Empty
+                        && _currentShape.States[_currentShape.CurrentState][i, j] != BlockType.Empty
+                        && _currentShape.States[_currentShape.CurrentState][i, j - 1] == BlockType.Empty)
                     {
                         return;
                     }
@@ -151,7 +161,7 @@ namespace Tetris
             }
 
             EraseCurrentShape();
-            currentShape.LocationX--;
+            _currentShape.LocationX--;
             PlaceCurrentShape();
         }
 
@@ -162,19 +172,19 @@ namespace Tetris
             {
                 return;
             }
-            if (currentShape.LocationX + currentShape.RightBorder == modelWidth - 1) 
+            if (_currentShape.LocationX + _currentShape.RightBorder == _modelWidth - 1) 
             {
                 return;
             }
 
             // Check the shape for contact with other shapes.
-            for (var i = currentShape.TopBorder; i <= currentShape.BottomBorder; i++)
+            for (var i = _currentShape.TopBorder; i <= _currentShape.BottomBorder; i++)
             {
-                for (var j = currentShape.RightBorder; j >= currentShape.LeftBorder; j--)
+                for (var j = _currentShape.RightBorder; j >= _currentShape.LeftBorder; j--)
                 {
-                    if (Model[currentShape.LocationY + i, currentShape.LocationX + j + 1] != BlockType.Empty
-                        && currentShape.States[currentShape.CurrentState][i, j] != BlockType.Empty
-                        && currentShape.States[currentShape.CurrentState][i, j + 1] == BlockType.Empty)
+                    if (Model[_currentShape.LocationY + i, _currentShape.LocationX + j + 1] != BlockType.Empty
+                        && _currentShape.States[_currentShape.CurrentState][i, j] != BlockType.Empty
+                        && _currentShape.States[_currentShape.CurrentState][i, j + 1] == BlockType.Empty)
                     {
                         return;
                     }
@@ -182,7 +192,7 @@ namespace Tetris
             }
 
             EraseCurrentShape();
-            currentShape.LocationX++;
+            _currentShape.LocationX++;
             PlaceCurrentShape();
         }
 
@@ -190,26 +200,26 @@ namespace Tetris
         {
             if (enoughSpace)
             {
-                for (var i = currentShape.TopBorder; i <= currentShape.BottomBorder; i++)
+                for (var i = _currentShape.TopBorder; i <= _currentShape.BottomBorder; i++)
                 {
-                    for (var j = currentShape.LeftBorder; j <= currentShape.RightBorder; j++)
+                    for (var j = _currentShape.LeftBorder; j <= _currentShape.RightBorder; j++)
                     {
-                        if (currentShape.States[currentShape.CurrentState][i, j] != BlockType.Empty)
+                        if (_currentShape.States[_currentShape.CurrentState][i, j] != BlockType.Empty)
                         {
-                            Model[currentShape.LocationY + i, currentShape.LocationX + j] = currentShape.States[currentShape.CurrentState][i, j];
+                            Model[_currentShape.LocationY + i, _currentShape.LocationX + j] = _currentShape.States[_currentShape.CurrentState][i, j];
                         }
                     }
                 }
             }
             else
             {
-                for (var i = currentShape.BottomBorder; rowCount > 0; i--, rowCount--)
+                for (var i = _currentShape.BottomBorder; rowCount > 0; i--, rowCount--)
                 {
-                    for (var j = currentShape.LeftBorder; j <= currentShape.RightBorder; j++)
+                    for (var j = _currentShape.LeftBorder; j <= _currentShape.RightBorder; j++)
                     {
-                        if (currentShape.States[currentShape.CurrentState][i, j] != BlockType.Empty)
+                        if (_currentShape.States[_currentShape.CurrentState][i, j] != BlockType.Empty)
                         {
-                            Model[0 + rowCount - 1, currentShape.LocationX + j] = currentShape.States[currentShape.CurrentState][i, j];
+                            Model[0 + rowCount - 1, _currentShape.LocationX + j] = _currentShape.States[_currentShape.CurrentState][i, j];
                         }
                     }
                 }
@@ -218,13 +228,13 @@ namespace Tetris
 
         private void EraseCurrentShape()
         {
-            for (var i = currentShape.TopBorder; i <= currentShape.BottomBorder; i++)
+            for (var i = _currentShape.TopBorder; i <= _currentShape.BottomBorder; i++)
             {
-                for (var j = currentShape.LeftBorder; j <= currentShape.RightBorder; j++)
+                for (var j = _currentShape.LeftBorder; j <= _currentShape.RightBorder; j++)
                 {
-                    if (currentShape.States[currentShape.CurrentState][i, j] != BlockType.Empty)
+                    if (_currentShape.States[_currentShape.CurrentState][i, j] != BlockType.Empty)
                     {
-                        Model[currentShape.LocationY + i, currentShape.LocationX + j] = BlockType.Empty;
+                        Model[_currentShape.LocationY + i, _currentShape.LocationX + j] = BlockType.Empty;
                     }
                 }
             }
@@ -232,11 +242,11 @@ namespace Tetris
 
         private void BringCurrentShapeToNextOne()
         {
-            currentShape = NextShape;
-            currentShape.LocationX = startLocation.X;
-            currentShape.LocationY = startLocation.Y;
+            _currentShape = NextShape;
+            _currentShape.LocationX = _startLocation.X;
+            _currentShape.LocationY = _startLocation.Y;
 
-            NextShape = shapes[randomNumberGenerator.Next(0, shapes.Length)];
+            NextShape = _shapes[_randomNumberGenerator.Next(0, _shapes.Length)];
             NextShape.CurrentState = ShapeState.Base;
             NextShapeChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -255,13 +265,13 @@ namespace Tetris
             var completedRows = new List<int>();
             bool isRowCompleted;
 
-            for (var i = currentShape.TopBorder; i <= currentShape.BottomBorder; i++)
+            for (var i = _currentShape.TopBorder; i <= _currentShape.BottomBorder; i++)
             {
                 isRowCompleted = true;
 
                 for (var j = 0; j < Model.GetLength(1); j++)
                 {
-                    if (Model[currentShape.LocationY + i, j] == BlockType.Empty)
+                    if (Model[_currentShape.LocationY + i, j] == BlockType.Empty)
                     {
                         isRowCompleted = false;
                         break;
@@ -270,7 +280,7 @@ namespace Tetris
 
                 if (isRowCompleted) 
                 {
-                    completedRows.Add(currentShape.LocationY + i);
+                    completedRows.Add(_currentShape.LocationY + i);
                 }
             }
 
@@ -292,15 +302,15 @@ namespace Tetris
                 offset++;
             }
 
-            gameScore += (completedRows.Count == 1) ? 10 : 15 * completedRows.Count;
-            GameScoreChanged?.Invoke(this, new GameScoreEventArgs(gameScore));
+            _gameScore += (completedRows.Count == 1) ? 10 : 15 * completedRows.Count;
+            GameScoreChanged?.Invoke(this, new GameScoreEventArgs(_gameScore));
         }
 
         private void ClearGameModel()
         {
-            for (var i = 0; i < modelHeight; i++)
+            for (var i = 0; i < _modelHeight; i++)
             {
-                for (var j = 0; j < modelWidth; j++)
+                for (var j = 0; j < _modelWidth; j++)
                 {
                     Model[i, j] = BlockType.Empty;
                 }
@@ -309,19 +319,7 @@ namespace Tetris
 
         private void EndOfGame()
         {
-            MyForm.Timer.Stop();
-            var dialogResult = MessageBox.Show($"Your score is: {gameScore}.", "Game over", MessageBoxButtons.OK);
-            if (dialogResult == DialogResult.OK)
-            {
-                ClearGameModel();
-                gameScore = 0;
-                GameScoreChanged?.Invoke(this, new GameScoreEventArgs(gameScore));
-
-                BringCurrentShapeToNextOne();
-                PlaceCurrentShape();
-
-                MyForm.Timer.Start();
-            }
+            GameEnd?.Invoke(this, new GameScoreEventArgs(_gameScore));
         }
 
         private int CountCleanRows()
@@ -329,13 +327,13 @@ namespace Tetris
             var rowCount = 0;
             bool isRowClean;
 
-            for (var i = 0; i < modelHeight; i++)
+            for (var i = 0; i < _modelHeight; i++)
             {
                 isRowClean = true;
 
-                for (var j = currentShape.LeftBorder; j <= currentShape.RightBorder; j++)
+                for (var j = _currentShape.LeftBorder; j <= _currentShape.RightBorder; j++)
                 {
-                    if (Model[i, currentShape.LocationX + j] != BlockType.Empty) 
+                    if (Model[i, _currentShape.LocationX + j] != BlockType.Empty) 
                     {
                         isRowClean = false;
                         break;
@@ -355,8 +353,8 @@ namespace Tetris
 
         private bool ShapeIsOutOfTopOrBottomModelBorders()
         {
-            if (currentShape.LocationY + currentShape.TopBorder < 0
-                || currentShape.LocationY + currentShape.BottomBorder == modelHeight - 1) 
+            if (_currentShape.LocationY + _currentShape.TopBorder < 0
+                || _currentShape.LocationY + _currentShape.BottomBorder == _modelHeight - 1) 
             {
                 return true;
             }

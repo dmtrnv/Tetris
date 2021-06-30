@@ -35,7 +35,7 @@
                 }
             };
         }
-
+        
         public override int TopBorder 
             => CurrentState == ShapeState.DegreeRotation180 ? base.TopBorder + 1 : base.TopBorder;
 

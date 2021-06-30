@@ -25,7 +25,7 @@
         public virtual int RightBorder 
             => States[CurrentState].GetLength(1) - 2;
 
-        public Shape(System.Drawing.Point startLocation)
+        protected Shape(System.Drawing.Point startLocation)
         {
             LocationX = startLocation.X;
             LocationY = startLocation.Y;
